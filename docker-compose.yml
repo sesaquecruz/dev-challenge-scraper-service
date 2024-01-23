@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  rabbitmq:
+    profiles:
+      - infra
+    container_name: rabbitmq
+    image: rabbitmq:3.12.3-management
+    volumes:
+      - "./.docker/rabbitmq.config:/etc/rabbitmq/rabbitmq.config"
+      - "./.docker/rabbitmq.json:/etc/rabbitmq/definitions.json"
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+      - "15692:15692"
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      timeout: 10s
+      retries: 6
+
+  app:
+    profiles:
+      - infra
+    container_name: app
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    image: ghcr.io/sesaquecruz/dev-challenge-app-service:release-1.0.0
+    environment:
+      - SERVER_PORT=8080
+      - RABBIT_MQ_URL=amqp://guest:guest@rabbitmq:5672
+    ports:
+      - "8080:8080"
+
+  scraper-dev:
+    profiles:
+      - dev
+    container_name: scraper-dev
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - .:/home/node/app
+    environment:
+      - RABBIT_MQ_URL=amqp://guest:guest@rabbitmq:5672
+
+  scraper-prod:
+    profiles:
+      - prod
+    container_name: scraper-prod
+    build:
+      context: .
+    environment:
+      - RABBIT_MQ_URL=amqp://guest:guest@rabbitmq:5672
