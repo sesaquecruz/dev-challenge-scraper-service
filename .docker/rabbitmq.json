@@ -6,25 +6,25 @@
 			"password_hash": "fd0GyzAf6C6hmgCJ5VU+TSyzUNlzypPlGb7VDKkqUvJqVxyd",
 			"hashing_algorithm": "rabbit_password_hashing_sha256",
 			"tags": "administrator"
-	  	}
+	  }
 	],
 	"vhosts": [
-	  	{
+	  {
 			"name": "/"
-	  	}
+	  }
 	],
 	"permissions": [
-	  	{
+  	{
 			"user": "guest",
 			"vhost": "/",
 			"configure": ".*",
 			"write": ".*",
 			"read": ".*"
-	  	}
+  	}
 	],
 	"parameters": [ ],
 	"policies": [
-	  	{
+  	{
 			"vhost": "/",
 			"name": "ha",
 			"pattern": "",
@@ -32,18 +32,27 @@
 		  	"ha-mode": "all",
 		  	"ha-sync-mode": "automatic",
 		  	"ha-sync-batch-size": 5
-			}
-	  	}
+  		}
+	 	}
 	],
 	"exchanges": [
 		{
 		  "name": "email",
 			"vhost": "/",
-		  	"type": "direct",
-		  	"durable": true,
-		  	"auto_delete": false,
-		  	"internal": false,
-		  	"arguments": { }
+	  	"type": "direct",
+	  	"durable": true,
+	  	"auto_delete": false,
+	  	"internal": false,
+	  	"arguments": { }
+		},
+    {
+		  "name": "email.dlx",
+			"vhost": "/",
+	  	"type": "direct",
+	  	"durable": true,
+	  	"auto_delete": false,
+	  	"internal": false,
+	  	"arguments": { }
 		}
 	],
 	"queues": [
@@ -52,8 +61,22 @@
 			"vhost": "/",
 			"durable": true,
 			"auto_delete": false,
-			"arguments": { }
-	  	}
+			"arguments": { 
+        "x-dead-letter-exchange": "email.dlx",
+        "x-dead-letter-routing-key": "das"
+      }
+	  },
+    {
+			"name": "email.das.queue.dlx",
+			"vhost": "/",
+			"durable": true,
+			"auto_delete": false,
+			"arguments": {
+        "x-dead-letter-exchange": "email",
+        "x-dead-letter-routing-key": "das",
+        "x-message-ttl": 10000
+      }
+	  }
 	],
 	"bindings": [
 		{
@@ -63,6 +86,14 @@
 			"destination_type": "queue",
 			"routing_key": "das",
 			"arguments": { }
-	  	}
+  	},
+    {
+			"source": "email.dlx",
+			"vhost": "/",
+			"destination": "email.das.queue.dlx",
+			"destination_type": "queue",
+			"routing_key": "das",
+			"arguments": { }
+  	}
 	]
 }
