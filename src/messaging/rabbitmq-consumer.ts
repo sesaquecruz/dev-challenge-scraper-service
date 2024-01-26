@@ -25,6 +25,8 @@ class RabbitMqConsumer {
     this.onChannelClose = this.onChannelClose.bind(this);
   }
 
+  // Start consume RabbitMQ messages passing them to callback onMessage
+  // Nack the message if an error occurs, it is send to DLX exchange
   async start(): Promise<void> {
     await this.connect();
     const channel = this.channel;

@@ -71,11 +71,7 @@
 			"vhost": "/",
 			"durable": true,
 			"auto_delete": false,
-			"arguments": {
-        "x-dead-letter-exchange": "email",
-        "x-dead-letter-routing-key": "das",
-        "x-message-ttl": 10000
-      }
+			"arguments": { }
 	  }
 	],
 	"bindings": [

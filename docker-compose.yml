@@ -1,6 +1,18 @@
 version: '3.8'
 
 services:
+  maildev:
+    profiles:
+      - infra
+    container_name: maildev
+    image: maildev/maildev:2.1.0
+    environment:
+      - MAILDEV_INCOMING_USER=user@maildev.com
+      - MAILDEV_INCOMING_PASS=user
+    ports:
+      - "1080:1080"
+      - "1025:1025"
+
   rabbitmq:
     profiles:
       - infra
@@ -25,7 +37,7 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
-    image: ghcr.io/sesaquecruz/dev-challenge-app-service:release-1.0.0
+    image: ghcr.io/sesaquecruz/dev-challenge-app-service:release-2.0.0
     environment:
       - SERVER_PORT=8080
       - RABBIT_MQ_URL=amqp://guest:guest@rabbitmq:5672
@@ -43,6 +55,12 @@ services:
       - .:/home/node/app
     environment:
       - RABBIT_MQ_URL=amqp://guest:guest@rabbitmq:5672
+      - EMAIL_SERVER=maildev
+      - EMAIL_PORT=1025
+      - EMAIL_SECURE=false
+      - EMAIL_USER=user@maildev.com
+      - EMAIL_PASS=user
+      - SCRAPER_HEADLESS=true
 
   scraper-prod:
     profiles:
@@ -52,3 +70,9 @@ services:
       context: .
     environment:
       - RABBIT_MQ_URL=amqp://guest:guest@rabbitmq:5672
+      - EMAIL_SERVER=maildev
+      - EMAIL_PORT=1025
+      - EMAIL_SECURE=false
+      - EMAIL_USER=user@maildev.com
+      - EMAIL_PASS=user
+      - SCRAPER_HEADLESS=true

@@ -1,43 +1,44 @@
 import { ValidationError } from "../error/validation";
 import { isValidCnpj, isValidEmail } from "../utils/validations";
+import { Das } from "./das";
 
 class Mei {
   readonly cnpj: string;
   readonly email: string;
+  das: Das;
 
-	constructor(cnpj: string, email: string) {
-    if (!isValidCnpj(cnpj)) {
+	constructor(cnpj: string, email: string, das: Das) {
+    if (!isValidCnpj(cnpj))
       throw new ValidationError("cnpj is invalid");
-    }
 
-    if (!isValidEmail(email)) {
+    if (!isValidEmail(email))
       throw new ValidationError("email is invalid");
-    }
 
     this.cnpj = cnpj;
     this.email = email;
+    this.das = das;
   }
 
+  // Parse the message received from RabbitMQ
   static from(obj: any): Mei {
-    if (!this.isMei(obj)) {
-      throw new ValidationError("Failed to parse object to MEI");
-    }    
-
-    const { cnpj, email } = obj;
-    return new Mei(cnpj, email);
-  }
-
-  static isMei(obj: any): boolean {
-    const mei: Mei = { cnpj: "", email: ""};
-
-    for (const field of Object.keys(mei)) {
-      console.log(field);
-      if (obj[field] === undefined || typeof obj[field] !== typeof mei[field]) {
-          return false;
+    try {
+      const { cnpj, email, das: { year, month }} = obj;
+      
+      if (
+        typeof cnpj === "string" &&
+        typeof email === "string" &&
+        typeof year === "number" &&
+        typeof month === "number"
+      ) {
+        const das = new Das(year, month);
+        const mei = new Mei(cnpj, email, das);
+        return mei;
       }
+        
+      throw new Error();
+    } catch(error) {
+      throw new ValidationError("Failed to parse message to MEI");
     }
-
-    return true;
   }
 }
 

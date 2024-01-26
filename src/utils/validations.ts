@@ -9,4 +9,12 @@ function isValidEmail(email: string): boolean {
   return EmailValidator.validate(email);
 }
 
-export { isValidCnpj, isValidEmail };
+function isValidYear(year: number): boolean {
+  return year >= 2000 && year <= 2100;
+}
+
+function isValidMonth(month: number): boolean {
+  return month >= 1 && month <= 12;
+}
+
+export { isValidCnpj, isValidEmail, isValidYear, isValidMonth };
