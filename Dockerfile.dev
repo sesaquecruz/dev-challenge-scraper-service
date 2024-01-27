@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install gnupg wget -y && \
 USER node
 RUN mkdir /home/node/app
 WORKDIR /home/node/app
+RUN npx puppeteer browsers install chrome
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD true
 ENV NODE_ENV development
 CMD [ "sleep", "infinity" ]

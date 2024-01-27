@@ -36,7 +36,14 @@ class DasScraper implements IDasScraper {
     });
   
     // Setup browser
-    const browser = await puppeteerExtra.launch({ headless: this.headless });
+    const browser = await puppeteerExtra.launch({ 
+      headless: this.headless,
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+    ],
+    });
+
     const session = await browser.target().createCDPSession();
   
     await session.send("Browser.setDownloadBehavior", {

@@ -20,6 +20,7 @@ COPY --chown=node:node --from=builder /home/node/app/dist ./dist
 COPY --chown=node:node --from=builder /home/node/app/package-lock.json ./
 COPY --chown=node:node --from=builder /home/node/app/package.json ./
 RUN npm ci --only=production
+RUN npx puppeteer browsers install chrome
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD true
 ENV NODE_ENV production
 CMD [ "npm", "run", "start" ]
