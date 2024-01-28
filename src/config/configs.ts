@@ -10,7 +10,8 @@ type Config = {
   emailPass: string,
   emailSubject: string,
   emailTemplatePath: string,
-  baseDownloadPath: string,
+  scraperbaseDownloadPath: string,
+  scraperNavigationTimeout: number,
   scraperHeadless: boolean,
 }
 
@@ -34,13 +35,12 @@ const emailSubject = "Notificação de Pagamento da DAS";
 const emailTemplatePath = "das-email.ejs";
 
 // Scraper configs
+const scraperbaseDownloadPath = "downloads/";
+const scraperNavigationTimeout = 10000;
 const scraperHeadless = getEnvVar("SCRAPER_HEADLESS") === "true";
 
-// Download configs
-const baseDownloadPath = "downloads/";
-
-if (!fs.existsSync(baseDownloadPath))
-  fs.mkdirSync(baseDownloadPath);
+if (!fs.existsSync(scraperbaseDownloadPath))
+  fs.mkdirSync(scraperbaseDownloadPath);
 
 // All configs
 const configs: Config = {
@@ -53,7 +53,8 @@ const configs: Config = {
   emailPass: emailPass,
   emailSubject: emailSubject,
   emailTemplatePath: emailTemplatePath,
-  baseDownloadPath: baseDownloadPath,
+  scraperbaseDownloadPath: scraperbaseDownloadPath,
+  scraperNavigationTimeout: scraperNavigationTimeout,
   scraperHeadless: scraperHeadless,
 };
 

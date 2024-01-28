@@ -7,7 +7,8 @@ import { DasEvent } from "./messaging/event/das";
 
 // Initialize dependencies
 const dasScraper = new DasScraper(
-  configs.baseDownloadPath,
+  configs.scraperbaseDownloadPath,
+  configs.scraperNavigationTimeout,
   configs.scraperHeadless,
 );
 

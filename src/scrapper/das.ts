@@ -1,12 +1,12 @@
 import { v4 as uuidv4 } from "uuid";
 import fs from "fs";
 import path from "path";
-import puppeteerExtra from "puppeteer-extra";
-import Stealth from "puppeteer-extra-plugin-stealth";
-import { Browser, CDPSession, Page } from "puppeteer";
+import puppeteer from "puppeteer-extra";
+import StealthPlugin from "puppeteer-extra-plugin-stealth";
+import { Browser, CDPSession } from "puppeteer";
 import { ScraperError } from "../error/scraper";
 
-puppeteerExtra.use(Stealth());
+puppeteer.use(StealthPlugin());
 
 interface IDasScraper {
   getDas(cnpj: string, year: number, month: number): Promise<string>;
@@ -14,22 +14,25 @@ interface IDasScraper {
 
 class DasScraper implements IDasScraper {
   private readonly baseDownloadPath: string;
+  private readonly navigationTimeout: number;
   private readonly headless: boolean | "new";
 
-  constructor(baseDownloadPath: string, headless: boolean) { 
+  constructor(baseDownloadPath: string, navigationTimeout: number, headless: boolean) { 
     this.baseDownloadPath = baseDownloadPath;
+    this.navigationTimeout = navigationTimeout;
     this.headless = headless ? "new" : false;
+
+    this.getDas = this.getDas.bind(this);
   }
 
   // Downloads DAS from PGMEI and returns its file path
   async getDas(cnpj: string, year: number, month: number): Promise<string> {
-    const downloadPath = this.generateDownloadPath();
-    const browser = await this.createBrowser();
+    const downloadPath = this.generateDownloadPath(this.baseDownloadPath);
+    const browser = await this.createBrowser(this.headless);
     const session = await this.createSession(browser, downloadPath);
-    const page = await this.createPage(browser);
   
     try {
-      await this.navigationSteps(page, cnpj, String(year), String(month));
+      await this.downloadDas(browser, this.navigationTimeout, cnpj, String(year), String(month));
       await this.downloadEvent(session);
       const filePath = this.getFilePathWithCustomName(downloadPath, `das-${year}-${month}.pdf`);
       return filePath;
@@ -40,17 +43,17 @@ class DasScraper implements IDasScraper {
     }
   }
 
-  private generateDownloadPath(): string {
-    const downloadPath = `${this.baseDownloadPath}${uuidv4()}`;
+  private generateDownloadPath(baseDownloadPath: string): string {
+    const downloadPath = `${baseDownloadPath}${uuidv4()}`;
     fs.mkdir(downloadPath, (error) => { 
       if (error) throw error;
     });
     return downloadPath;
   }
 
-  private async createBrowser(): Promise<Browser> {
-    return puppeteerExtra.launch({ 
-      headless: this.headless,
+  private async createBrowser(headless: boolean | "new"): Promise<Browser> {
+    return puppeteer.launch({ 
+      headless: headless,
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
@@ -67,22 +70,17 @@ class DasScraper implements IDasScraper {
     });
     return session;
   }
-
-  private async createPage(browser: Browser): Promise<Page> {
-    const page = await browser.newPage();
-    await page.setViewport({ width: 1280, height: 720 });
-    await page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36");
-    return page;
-  }
   
-  private async navigationSteps(page: Page, cnpj: string, year: string, month: string) {
+  private async downloadDas(browser: Browser, timeout: number, cnpj: string, year: string, month: string) {
+    const page = await browser.newPage();
+
     async function goToPgmeiPage() {
       await page.goto("https://www8.receita.fazenda.gov.br/simplesnacional/aplicacoes/atspo/pgmei.app/identificacao");
       page.waitForNavigation({ waitUntil: "load" });
     }
   
     async function enterWithCnpj() {
-      await page.waitForSelector("[name=\"cnpj\"]");
+      await page.waitForSelector("[name=\"cnpj\"]", { timeout: timeout });
       await page.keyboard.press("Home");
       await page.type("[name=\"cnpj\"]", cnpj);
   
@@ -91,17 +89,17 @@ class DasScraper implements IDasScraper {
     }
   
     async function goToIssuePage() {
-      await page.waitForSelector("[href=\"/SimplesNacional/Aplicacoes/ATSPO/pgmei.app/emissao\"]");
+      await page.waitForSelector("[href=\"/SimplesNacional/Aplicacoes/ATSPO/pgmei.app/emissao\"]", { timeout: timeout });
       await page.click("[href=\"/SimplesNacional/Aplicacoes/ATSPO/pgmei.app/emissao\"]");
       page.waitForNavigation({ waitUntil: "load" });
     }
   
     async function selectYear() {
       // Select options
-      await page.waitForSelector("[data-id=\"anoCalendarioSelect\"]");
+      await page.waitForSelector("[data-id=\"anoCalendarioSelect\"]", { timeout: timeout });
       await page.click("[data-id=\"anoCalendarioSelect\"]");
   
-      await page.waitForSelector(".dropdown-menu.inner");
+      await page.waitForSelector(".dropdown-menu.inner", { timeout: timeout });
   
       // Select year if it is available
       const selectedYear = await page.evaluate((year) => {
@@ -125,18 +123,19 @@ class DasScraper implements IDasScraper {
   
     async function selectMonth() {
       // Select month if it is available
-      await page.waitForSelector(`input[type="checkbox"][value="${year}${month.padStart(2, "0")}"]`);
+      await page.waitForSelector(`input[type="checkbox"][value="${year}${month.padStart(2, "0")}"]`, { timeout: timeout });
       await page.click(`input[type="checkbox"][value="${year}${month.padStart(2, "0")}"]`);
   
-      await page.waitForSelector("#btnEmitirDas");
+      await page.waitForSelector("#btnEmitirDas", { timeout: timeout });
       await page.click("#btnEmitirDas");
     }
   
     async function startDownload() {
-      await page.waitForSelector("[href=\"/SimplesNacional/Aplicacoes/ATSPO/pgmei.app/emissao/imprimir\"]");
+      await page.waitForSelector("[href=\"/SimplesNacional/Aplicacoes/ATSPO/pgmei.app/emissao/imprimir\"]", { timeout: timeout });
       await page.click("[href=\"/SimplesNacional/Aplicacoes/ATSPO/pgmei.app/emissao/imprimir\"]");
     }
 
+    // Execute steps
     await goToPgmeiPage();
     await enterWithCnpj();
     await goToIssuePage();
