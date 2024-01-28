@@ -60,6 +60,7 @@ services:
       - EMAIL_SECURE=false
       - EMAIL_USER=user@maildev.com
       - EMAIL_PASS=user
+      - SCRAPER_NAVIGATION_TIMEOUT=10000
       - SCRAPER_HEADLESS=true
 
   scraper-prod:
@@ -75,4 +76,5 @@ services:
       - EMAIL_SECURE=false
       - EMAIL_USER=user@maildev.com
       - EMAIL_PASS=user
+      - SCRAPER_NAVIGATION_TIMEOUT=10000
       - SCRAPER_HEADLESS=true

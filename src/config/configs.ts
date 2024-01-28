@@ -36,7 +36,7 @@ const emailTemplatePath = "das-email.ejs";
 
 // Scraper configs
 const scraperbaseDownloadPath = "downloads/";
-const scraperNavigationTimeout = 10000;
+const scraperNavigationTimeout = Number(getEnvVar("SCRAPER_NAVIGATION_TIMEOUT"));
 const scraperHeadless = getEnvVar("SCRAPER_HEADLESS") === "true";
 
 if (!fs.existsSync(scraperbaseDownloadPath))
