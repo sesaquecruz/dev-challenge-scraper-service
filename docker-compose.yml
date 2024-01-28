@@ -61,7 +61,7 @@ services:
       - EMAIL_USER=user@maildev.com
       - EMAIL_PASS=user
       - SCRAPER_NAVIGATION_TIMEOUT=10000
-      - SCRAPER_HEADLESS=true
+      - SCRAPER_HEADLESS=false # To bypass the CAPTCHA protection, a window can be rendered inside the container.
 
   scraper-prod:
     profiles:
@@ -77,4 +77,4 @@ services:
       - EMAIL_USER=user@maildev.com
       - EMAIL_PASS=user
       - SCRAPER_NAVIGATION_TIMEOUT=10000
-      - SCRAPER_HEADLESS=true
+      - SCRAPER_HEADLESS=false # To bypass the CAPTCHA protection, a window can be rendered inside the container.
