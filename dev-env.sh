@@ -10,7 +10,7 @@ export EMAIL_PORT="1025"
 export EMAIL_SECURE="false"
 export EMAIL_USER="user@maildev.com"
 export EMAIL_PASS="user"
-export SCRAPER_HEADLESS="true"
+export SCRAPER_HEADLESS="false" # As false, this show the browser window during the dev env
 
 echo "Dev Environment Variables:"
 echo "RABBIT_MQ_URL=$RABBIT_MQ_URL"

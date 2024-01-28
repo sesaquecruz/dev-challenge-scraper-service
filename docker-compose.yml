@@ -37,7 +37,7 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
-    image: ghcr.io/sesaquecruz/dev-challenge-app-service:release-2.0.0
+    image: ghcr.io/sesaquecruz/dev-challenge-app-service:release-2.2.0
     environment:
       - SERVER_PORT=8080
       - RABBIT_MQ_URL=amqp://guest:guest@rabbitmq:5672

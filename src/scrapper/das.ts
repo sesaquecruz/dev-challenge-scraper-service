@@ -3,74 +3,79 @@ import fs from "fs";
 import path from "path";
 import puppeteerExtra from "puppeteer-extra";
 import Stealth from "puppeteer-extra-plugin-stealth";
-import { Das } from "../model/das";
+import { Browser, CDPSession, Page } from "puppeteer";
+import { ScraperError } from "../error/scraper";
 
 puppeteerExtra.use(Stealth());
 
 interface IDasScraper {
-  downloadDas(cnpj: string, year: number, month: number): Promise<Das>;
+  getDas(cnpj: string, year: number, month: number): Promise<string>;
 }
 
 class DasScraper implements IDasScraper {
-  private readonly downloadPath: string;
+  private readonly baseDownloadPath: string;
   private readonly headless: boolean | "new";
 
-  constructor(downloadPath: string, headless: boolean) { 
-    this.downloadPath = downloadPath;
+  constructor(baseDownloadPath: string, headless: boolean) { 
+    this.baseDownloadPath = baseDownloadPath;
     this.headless = headless ? "new" : false;
-
-    this.downloadDas = this.downloadDas.bind(this);
   }
 
-  // Download DAS from PGMEI
-  async downloadDas(cnpj: string, year: number, month: number): Promise<Das> {
-    // Format inputs to matches with options
-    const formatedYear = String(year);
-    const formatedMonth = String(month).padStart(2, "0");
+  // Downloads DAS from PGMEI and returns its file path
+  async getDas(cnpj: string, year: number, month: number): Promise<string> {
+    const downloadPath = this.generateDownloadPath();
+    const browser = await this.createBrowser();
+    const session = await this.createSession(browser, downloadPath);
+    const page = await this.createPage(browser);
+  
+    try {
+      await this.navigationSteps(page, cnpj, String(year), String(month));
+      await this.downloadEvent(session);
+      const filePath = this.getFilePathWithCustomName(downloadPath, `das-${year}-${month}.pdf`);
+      return filePath;
+    } catch (error) {
+      throw new ScraperError((error as Error).message);
+    } finally {
+      await browser.close();
+    }
+  }
 
-    
-     // Generate a download path
-    const downloadFullPath = `${this.downloadPath}${uuidv4()}`;
-    fs.mkdir(downloadFullPath, (error) => { 
+  private generateDownloadPath(): string {
+    const downloadPath = `${this.baseDownloadPath}${uuidv4()}`;
+    fs.mkdir(downloadPath, (error) => { 
       if (error) throw error;
     });
-  
-    // Setup browser
-    const browser = await puppeteerExtra.launch({ 
+    return downloadPath;
+  }
+
+  private async createBrowser(): Promise<Browser> {
+    return puppeteerExtra.launch({ 
       headless: this.headless,
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
-    ],
+      ],
     });
+  }
 
+  private async createSession(browser: Browser, downloadPath: string): Promise<CDPSession> {
     const session = await browser.target().createCDPSession();
-  
     await session.send("Browser.setDownloadBehavior", {
       behavior: "allowAndName",
-      downloadPath: downloadFullPath,
+      downloadPath: downloadPath,
       eventsEnabled: true,
     });
+    return session;
+  }
 
-    const downloadProgress = async () => {
-      return new Promise((resolve, reject) => {
-        session.on("Browser.downloadProgress", event => {
-          if (event.state === "completed")
-            return resolve(`download ${event.state}`);
-          if (event.state === "canceled")
-            return reject(`download ${event.state}`);
-        });
-      });
-    };
-    
-    // Setup page
+  private async createPage(browser: Browser): Promise<Page> {
     const page = await browser.newPage();
-  
     await page.setViewport({ width: 1280, height: 720 });
     await page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36");
+    return page;
+  }
   
-    // Steps to download DAS
-  
+  private async navigationSteps(page: Page, cnpj: string, year: string, month: string) {
     async function goToPgmeiPage() {
       await page.goto("https://www8.receita.fazenda.gov.br/simplesnacional/aplicacoes/atspo/pgmei.app/identificacao");
       page.waitForNavigation({ waitUntil: "load" });
@@ -109,7 +114,7 @@ class DasScraper implements IDasScraper {
         }
         
         return indexOfYear >= 0;
-      }, formatedYear);
+      }, year);
       
       if (!selectedYear)
         throw new Error("unavailable year");
@@ -120,56 +125,57 @@ class DasScraper implements IDasScraper {
   
     async function selectMonth() {
       // Select month if it is available
-      await page.waitForSelector(`input[type="checkbox"][value="${formatedYear}${formatedMonth}"]`);
-      await page.click(`input[type="checkbox"][value="${formatedYear}${formatedMonth}"]`);
+      await page.waitForSelector(`input[type="checkbox"][value="${year}${month.padStart(2, "0")}"]`);
+      await page.click(`input[type="checkbox"][value="${year}${month.padStart(2, "0")}"]`);
   
       await page.waitForSelector("#btnEmitirDas");
       await page.click("#btnEmitirDas");
     }
   
-    async function downloadDas() {
+    async function startDownload() {
       await page.waitForSelector("[href=\"/SimplesNacional/Aplicacoes/ATSPO/pgmei.app/emissao/imprimir\"]");
       await page.click("[href=\"/SimplesNacional/Aplicacoes/ATSPO/pgmei.app/emissao/imprimir\"]");
-      await downloadProgress();
     }
-  
-    function getDas(): Das {
-      const fileName = `das-${formatedYear}-${formatedMonth}.pdf`;
-      const filePath = `${downloadFullPath}/${fileName}`;
-  
-      fs.readdir(downloadFullPath, (error, files) => { 
-        if (error) throw error;
-  
-        if (files.length < 1)
-          throw new Error("download file not found");
-  
-        if (files.length > 1)
-          throw new Error("multiples download files");
-  
-        const currentName = files[0];
-  
-        fs.rename(path.join(downloadFullPath, currentName), path.join(downloadFullPath, fileName), (error) => {
-          if (error) throw error;
-        });
+
+    await goToPgmeiPage();
+    await enterWithCnpj();
+    await goToIssuePage();
+    await selectYear();
+    await selectMonth();
+    await startDownload();
+  }
+
+  private async downloadEvent(session: CDPSession): Promise<string> {
+    return new Promise((resolve, reject) => {
+      session.on("Browser.downloadProgress", event => {
+        if (event.state === "completed")
+          return resolve(`download ${event.state}`);
+        if (event.state === "canceled")
+          return reject(`download ${event.state}`);
       });
+    });
+  }
 
-      const das = new Das(year, month);
-      das.setFileInfo(fileName, filePath);
+  private getFilePathWithCustomName(downloadPath: string, customName: string): string {
+    const filePath = path.join(downloadPath, customName);
 
-      return das;
-    }
-  
-    try {
-      await goToPgmeiPage();
-      await enterWithCnpj();
-      await goToIssuePage();
-      await selectYear();
-      await selectMonth();
-      await downloadDas();
-      return getDas();
-    } finally {
-      await browser.close();
-    }
+    fs.readdir(downloadPath, (error, files) => { 
+      if (error) throw error;
+
+      if (files.length < 1)
+        throw new Error("download file not found");
+
+      if (files.length > 1)
+        throw new Error("multiples download files");
+
+      const currentName = files[0];
+
+      fs.rename(path.join(downloadPath, currentName), filePath, (error) => {
+        if (error) throw error;
+      });
+    });
+
+    return filePath;
   }
 }
 

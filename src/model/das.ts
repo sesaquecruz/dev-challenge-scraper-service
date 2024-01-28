@@ -4,22 +4,39 @@ import { isValidMonth, isValidYear } from "../utils/validations";
 class Das {
   readonly year: number;
   readonly month: number;
-  fileName: string = "";
   filePath: string = "";
 
   constructor(year: number, month: number) {
-    if (!isValidYear(year))
-      throw new ValidationError("year is invalid");
+    const errors: string[] = [];
 
-    if (!isValidMonth(month)) 
-      throw new ValidationError("month is invalid");
+    if (!isValidYear(year)) {
+      errors.push("year is invalid");
+    }
+
+    if (!isValidMonth(month)) {
+      errors.push("month is invalid");
+    }
+
+    if (errors.length > 0 ) {
+      throw new ValidationError(errors);
+    }
 
     this.year = year;
     this.month = month;
   }
 
-  setFileInfo(fileName: string, filePath: string) {
-    this.fileName = fileName;
+  static from(obj: any): Das {
+    const { year, month } = obj;
+      
+    if (typeof year !== "number" || typeof month !== "number") {
+      throw new ValidationError(["Failed to parse Das from object"]);
+    }
+
+    const das = new Das(year, month);
+    return das;
+  }
+
+  setFilePath(filePath: string) {
     this.filePath = filePath;
   }
 }

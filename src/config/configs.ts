@@ -10,7 +10,7 @@ type Config = {
   emailPass: string,
   emailSubject: string,
   emailTemplatePath: string,
-  downloadBasePath: string,
+  baseDownloadPath: string,
   scraperHeadless: boolean,
 }
 
@@ -37,10 +37,10 @@ const emailTemplatePath = "das-email.ejs";
 const scraperHeadless = getEnvVar("SCRAPER_HEADLESS") === "true";
 
 // Download configs
-const downloadBasePath = "downloads/";
+const baseDownloadPath = "downloads/";
 
-if (!fs.existsSync(downloadBasePath))
-  fs.mkdirSync(downloadBasePath);
+if (!fs.existsSync(baseDownloadPath))
+  fs.mkdirSync(baseDownloadPath);
 
 // All configs
 const configs: Config = {
@@ -53,7 +53,7 @@ const configs: Config = {
   emailPass: emailPass,
   emailSubject: emailSubject,
   emailTemplatePath: emailTemplatePath,
-  downloadBasePath: downloadBasePath,
+  baseDownloadPath: baseDownloadPath,
   scraperHeadless: scraperHeadless,
 };
 

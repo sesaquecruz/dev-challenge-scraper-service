@@ -1,13 +1,13 @@
 import { ConsumeMessage } from "amqplib";
-import { RabbitMqConsumer } from "./messaging/rabbitmq-consumer";
-import { Mei } from "./model/mei";
+import { RabbitMqConsumer } from "./messaging/consumer/rabbitmq";
 import { configs } from "./config/configs";
 import { DasMail } from "./email/das";
 import { DasScraper } from "./scrapper/das";
+import { DasEvent } from "./messaging/event/das";
 
 // Initialize dependencies
 const dasScraper = new DasScraper(
-  configs.downloadBasePath,
+  configs.baseDownloadPath,
   configs.scraperHeadless,
 );
 
@@ -24,12 +24,16 @@ const dasMail = new DasMail(
 // Define operations to process messages
 async function onMessage (message: ConsumeMessage): Promise<void> {
   const content = JSON.parse(message.content.toString());
-  const mei = Mei.from(content);
+  const dasEvent = DasEvent.from(content);
 
-  console.log(`sending DAS of ${mei.das.month}/${mei.das.year} to ${mei.email}`);
+  const mei = dasEvent.mei;
+  const das = dasEvent.das;
+  const dasFilePath = await dasScraper.getDas(mei.cnpj, das.year, das.month);
 
-  mei.das = await dasScraper.downloadDas(mei.cnpj, mei.das.year, mei.das.month);
-  await dasMail.sendDas(mei.email, mei.das);
+  das.setFilePath(dasFilePath);
+
+  console.log(`sending the DAS for ${das.month}/${das.year} to ${mei.email}`);
+  await dasMail.sendDas(mei.email, das);
 }
 
 // Initialize dependencies

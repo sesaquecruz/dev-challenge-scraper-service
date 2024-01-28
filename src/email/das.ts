@@ -1,6 +1,7 @@
 import * as nodemailer from "nodemailer";
 import SMTPTransport from "nodemailer/lib/smtp-transport";
 import * as fs from "fs";
+import * as path from "path";
 import * as ejs from "ejs";
 import { Das } from "../model/das";
 
@@ -43,7 +44,7 @@ class DasMail implements IDasMail {
   // Send an email to MEI with a DAS
   async sendDas(email: string, das: Das): Promise<void> {
     const content = ejs.render(this.template, das);
-    const fileName = das.fileName;
+    const fileName = path.basename(das.filePath);
     const file = fs.readFileSync(das.filePath);
 
     await this.transporter.sendMail({
