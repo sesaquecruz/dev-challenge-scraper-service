@@ -4,7 +4,7 @@ import path from "path";
 import puppeteer from "puppeteer-extra";
 import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import { Browser, CDPSession } from "puppeteer";
-import { ScraperError } from "../error/scraper";
+import { removeFolder } from "../utils/files";
 
 puppeteer.use(StealthPlugin());
 
@@ -27,27 +27,26 @@ class DasScraper implements IDasScraper {
 
   // Downloads DAS from PGMEI and returns its file path
   async getDas(cnpj: string, year: number, month: number): Promise<string> {
-    const downloadPath = this.generateDownloadPath(this.baseDownloadPath);
+    const downloadPath = await this.generateDownloadPath(this.baseDownloadPath);
     const browser = await this.createBrowser(this.headless);
     const session = await this.createSession(browser, downloadPath);
   
     try {
       await this.downloadDas(browser, this.navigationTimeout, cnpj, String(year), String(month));
       await this.downloadEvent(session);
-      const filePath = this.getFilePathWithCustomName(downloadPath, `das-${year}-${month}.pdf`);
+      const filePath = await this.getFilePathWithCustomName(downloadPath, `das-${year}-${month}.pdf`);
       return filePath;
     } catch (error) {
-      throw new ScraperError((error as Error).message);
+      await removeFolder(downloadPath);
+      throw error;
     } finally {
       await browser.close();
     }
   }
 
-  private generateDownloadPath(baseDownloadPath: string): string {
+  private async generateDownloadPath(baseDownloadPath: string): Promise<string> {
     const downloadPath = `${baseDownloadPath}${uuidv4()}`;
-    fs.mkdir(downloadPath, (error) => { 
-      if (error) throw error;
-    });
+    await fs.promises.mkdir(downloadPath);
     return downloadPath;
   }
 
@@ -155,24 +154,19 @@ class DasScraper implements IDasScraper {
     });
   }
 
-  private getFilePathWithCustomName(downloadPath: string, customName: string): string {
+  private async getFilePathWithCustomName(downloadPath: string, customName: string): Promise<string> {
+    const files = await fs.promises.readdir(downloadPath);
+
+    if (files.length < 1)
+      throw new Error("download file not found");
+
+    if (files.length > 1)
+      throw new Error("multiples download files");
+
+    const dasPath = path.join(downloadPath, files[0]);
     const filePath = path.join(downloadPath, customName);
 
-    fs.readdir(downloadPath, (error, files) => { 
-      if (error) throw error;
-
-      if (files.length < 1)
-        throw new Error("download file not found");
-
-      if (files.length > 1)
-        throw new Error("multiples download files");
-
-      const currentName = files[0];
-
-      fs.rename(path.join(downloadPath, currentName), filePath, (error) => {
-        if (error) throw error;
-      });
-    });
+    await fs.promises.rename(dasPath, filePath);
 
     return filePath;
   }

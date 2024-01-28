@@ -45,7 +45,7 @@ class DasMail implements IDasMail {
   async sendDas(email: string, das: Das): Promise<void> {
     const content = ejs.render(this.template, das);
     const fileName = path.basename(das.filePath);
-    const file = fs.readFileSync(das.filePath);
+    const file = await fs.promises.readFile(das.filePath);
 
     await this.transporter.sendMail({
       from: this.sender,
