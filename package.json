@@ -1,0 +1,43 @@
+{
+  "name": "scraper-service",
+  "version": "1.0.0",
+  "description": "DAS Scraper",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest",
+    "build": "rimraf dist && npx tsc",
+    "start": "node dist/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/amqplib": "^0.10.4",
+    "@types/ejs": "^3.1.5",
+    "@types/email-validator": "^1.0.6",
+    "@types/jest": "^29.5.11",
+    "@types/node": "^20.11.5",
+    "@types/nodemailer": "^6.4.14",
+    "@types/retry": "^0.12.5",
+    "@types/uuid": "^9.0.8",
+    "@typescript-eslint/eslint-plugin": "^6.19.0",
+    "@typescript-eslint/parser": "^6.19.0",
+    "eslint": "^8.56.0",
+    "jest": "^29.7.0",
+    "rimraf": "^5.0.5",
+    "ts-jest": "^29.1.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "amqplib": "^0.10.3",
+    "cpf-cnpj-validator": "^1.0.3",
+    "ejs": "^3.1.9",
+    "email-validator": "^2.0.4",
+    "nodemailer": "^6.9.8",
+    "puppeteer": "^21.9.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "uuid": "^9.0.1"
+  }
+}
