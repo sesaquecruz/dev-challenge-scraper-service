@@ -30,13 +30,19 @@ The entire solution systems include:
 }
 ```
 
-## Installation
+## Installation using Docker Image from GitHub
 
-### Using only Docker Images
+1. Clone this repository:
 
-1. Download the file [docker-compose-demo.yml](./docker-compose-demo.yml).
+```
+git clone https://github.com/sesaquecruz/dev-challenge-scraper-service
+```
 
-2. Navigate to the directory containing `docker-compose-demo.yml`.
+2. Enter the project directory:
+
+```
+cd dev-challenge-scraper-service
+```
 
 3. Run the docker compose to start the services:
 
@@ -46,7 +52,7 @@ docker compose -f docker-compose-demo.yml up -d
 
 To stop all services, run: `docker compose -f docker-compose-demo.yml down`.
 
-### Cloning the Repository
+## Installation building Docker Image
 
 1. Clone this repository:
 
